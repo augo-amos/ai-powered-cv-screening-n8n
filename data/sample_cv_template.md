@@ -1,4 +1,3 @@
-```markdown
 # Sample CV Template for Testing
 
 ## John Doe
