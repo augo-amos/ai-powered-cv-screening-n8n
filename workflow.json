@@ -1,0 +1,858 @@
+{
+  "name": "AI-Powered CV Screening",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1T4Pd2o3fwdTpzQfIr58zQ4tidQsGrNbT",
+          "mode": "list",
+          "cachedResultName": "n8n-automation",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1T4Pd2o3fwdTpzQfIr58zQ4tidQsGrNbT"
+        },
+        "event": "={{ \"fileCreated\" }}",
+        "options": {}
+      },
+      "id": "ea3441bc-2e81-4011-ab29-3237bae2f198",
+      "name": "New CV Uploaded",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        400
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "Y0KTjZqQXbPqriE0",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {
+          "joinPages": true
+        }
+      },
+      "id": "92a7acd1-6fc4-4e15-b2e3-661c9a919f3e",
+      "name": "Extract CV Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this CV and grade the candidate:\n\n{{ $json.text }}\n\nEvaluate based on:\n1. Technical Skills (0-100): Depth and breadth of technical expertise, modern tech stack knowledge\n2. Experience (0-100): Years of relevant experience, progression, impact of previous roles\n3. Education (0-100): Academic credentials, certifications, continuous learning\n4. Cultural Fit (0-100): Evidence of teamwork, leadership, values alignment, adaptability\n5. Communication Quality (0-100): CV clarity, grammar, presentation, storytelling ability\n6. Career Progression (0-100): Growth trajectory, increasing responsibility, strategic moves\n\nCalculate an overall score (weighted average: Technical 30%, Experience 25%, Education 15%, Cultural Fit 15%, Communication 10%, Career Progression 5%).\n\nA candidate PASSES if overall score >= 70.\n\nProvide specific strengths, concerns, and a recommendation.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an expert technical recruiter with 15 years of experience evaluating data engineering candidates. You have a keen eye for identifying top talent and assessing both technical capabilities and soft skills. Be thorough, fair, and provide actionable insights."
+        }
+      },
+      "id": "25ea29a0-6c3d-4d76-9825-0b94c68e7993",
+      "name": "AI CV Assessor",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        912,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "72f925dc-35a0-4d05-a240-d9373ee135cf",
+      "name": "OpenAI GPT-4",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        920,
+        624
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "wKa2p50QcIpFjzJo",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\"overallScore\":85,\"passed\":true,\"technicalSkills\":90,\"experience\":85,\"education\":80,\"culturalFit\":75,\"communicationQuality\":70,\"careerProgression\":88,\"summary\":\"Strong technical background with excellent leadership experience\",\"strengths\":[\"Microservices expertise\",\"Team leadership\",\"Cloud architecture\"],\"concerns\":[\"Limited frontend experience\",\"No mention of testing practices\"],\"recommendation\":\"Proceed to technical interview\"}"
+      },
+      "id": "60316a3f-51c4-4692-a86f-d70ac18522bc",
+      "name": "Grading Schema",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1048,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "WrFK716OOzP8bTq1",
+          "mode": "list",
+          "cachedResultName": "CV Assessments",
+          "cachedResultUrl": "/projects/m5V2WUj1mlGT4X5i/datatables/WrFK716OOzP8bTq1"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "fileId",
+              "keyValue": "={{ $('New CV Uploaded').item.json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidateName": "={{ $(\"New CV Uploaded\").item.json.name }}",
+            "fileId": "={{ $(\"New CV Uploaded\").item.json.id }}",
+            "overallScore": "={{ $(\"AI CV Assessor\").item.json.output.overallScore }}",
+            "passed": "={{ $(\"AI CV Assessor\").item.json.output.passed }}",
+            "technicalSkills": "={{ $(\"AI CV Assessor\").item.json.output.technicalSkills }}",
+            "experience": "={{ $(\"AI CV Assessor\").item.json.output.experience }}",
+            "education": "={{ $(\"AI CV Assessor\").item.json.output.education }}",
+            "culturalFit": "={{ $(\"AI CV Assessor\").item.json.output.culturalFit }}",
+            "communicationQuality": "={{ $(\"AI CV Assessor\").item.json.output.communicationQuality }}",
+            "careerProgression": "={{ $(\"AI CV Assessor\").item.json.output.careerProgression }}",
+            "summary": "={{ $(\"AI CV Assessor\").item.json.output.summary }}",
+            "strengths": "={{ $(\"AI CV Assessor\").item.json.output.strengths.join(\", \") }}",
+            "concerns": "={{ $(\"AI CV Assessor\").item.json.output.concerns.join(\", \") }}",
+            "recommendation": "={{ $(\"AI CV Assessor\").item.json.output.recommendation }}",
+            "assessmentDate": "={{ $now.toISO() }}",
+            "humanReviewStatus": "Pending"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "candidateName",
+              "displayName": "candidateName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fileId",
+              "displayName": "fileId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "overallScore",
+              "displayName": "overallScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "passed",
+              "displayName": "passed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "technicalSkills",
+              "displayName": "technicalSkills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "experience",
+              "displayName": "experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "education",
+              "displayName": "education",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "culturalFit",
+              "displayName": "culturalFit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "communicationQuality",
+              "displayName": "communicationQuality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "careerProgression",
+              "displayName": "careerProgression",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "strengths",
+              "displayName": "strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "concerns",
+              "displayName": "concerns",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "recommendation",
+              "displayName": "recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "assessmentDate",
+              "displayName": "assessmentDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "humanReviewStatus",
+              "displayName": "humanReviewStatus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "7a26403a-4ad6-4d69-ba48-0ba0a2d82e9f",
+      "name": "Store Assessment",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1264,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $(\"AI CV Assessor\").item.json.output.passed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "id": "4e8586e4-323d-4d73-b957-df30155594b9"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cc727540-3e4d-4e7d-8924-862760f6275d",
+      "name": "Did Candidate Pass?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1488,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "humanDecision",
+              "value": "={{ $(\"Send Approval Email\").item.json.data[\"Your Decision\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "reviewerNotes",
+              "value": "={{ $(\"Send Approval Email\").item.json.data[\"Reviewer Notes\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "reviewedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "candidateName",
+              "value": "={{ $(\"New CV Uploaded\").item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "overallScore",
+              "value": "={{ $(\"AI CV Assessor\").item.json.output.overallScore }}",
+              "type": "number"
+            },
+            {
+              "id": "6",
+              "name": "fileId",
+              "value": "={{ $(\"New CV Uploaded\").item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4a46c308-d731-4c33-92e4-6be795f08475",
+      "name": "Record Human Decision",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1936,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "status",
+              "value": "Automatically Rejected",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "reason",
+              "value": "={{ \"Score below threshold: \" + $(\"AI CV Assessor\").item.json.output.overallScore + \"/100\" }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "candidateName",
+              "value": "={{ $(\"New CV Uploaded\").item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "rejectedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "fileId",
+              "value": "={{ $(\"New CV Uploaded\").item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2c191a29-5d98-4046-b9f2-7baa800415f0",
+      "name": "Auto-Reject",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1712,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "id": "75c7873b-af33-4d33-a261-5cde888380a3",
+      "name": "Download CV",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        464,
+        400
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "Y0KTjZqQXbPqriE0",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "augoamos@gmail.com",
+        "subject": "={{ \"CV Review Required: \" + $(\"New CV Uploaded\").item.json.name }}",
+        "message": "={{ \"<h2>Candidate Assessment Review</h2>\" +\n\"<p><strong>Candidate:</strong> \" + $(\"New CV Uploaded\").item.json.name + \"</p>\" +\n\"<p><strong>Overall Score:</strong> \" + $(\"AI CV Assessor\").item.json.output.overallScore + \"/100</p>\" +\n\"<p><strong>AI Summary:</strong> \" + $(\"AI CV Assessor\").item.json.output.summary + \"</p>\" +\n\"<p><strong>Strengths:</strong> \" + $(\"AI CV Assessor\").item.json.output.strengths.join(\", \") + \"</p>\" +\n\"<p><strong>Concerns:</strong> \" + $(\"AI CV Assessor\").item.json.output.concerns.join(\", \") + \"</p>\" +\n\"<p><strong>AI Recommendation:</strong> \" + $(\"AI CV Assessor\").item.json.output.recommendation + \"</p>\" +\n\"<p><strong>File Link:</strong> <a href=\\\"\" + $(\"New CV Uploaded\").item.json.webViewLink + \"\\\">View CV</a></p>\" }}",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Your Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve - Proceed to Next Stage"
+                  },
+                  {
+                    "option": "Reject - Not a Good Fit"
+                  },
+                  {
+                    "option": "Request More Information"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Reviewer Notes",
+              "fieldType": "textarea",
+              "placeholder": "Add any additional comments or observations..."
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "763fc629-7ca0-4a89-8b28-8e4174495600",
+      "name": "Send Approval Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1712,
+        304
+      ],
+      "webhookId": "3f122537-c757-4946-95c3-3f6907c958c9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "FdfxSJxsUKh4GwvF",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "WrFK716OOzP8bTq1",
+          "mode": "list",
+          "cachedResultName": "CV Assessments",
+          "cachedResultUrl": "/projects/m5V2WUj1mlGT4X5i/datatables/WrFK716OOzP8bTq1"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "fileId",
+              "keyValue": "={{ $json.fileId }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "humanReviewStatus": "={{ $json.humanDecision }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "humanReviewStatus",
+              "displayName": "humanReviewStatus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "566a8f70-d587-47a3-bd2b-75553bb6a1a1",
+      "name": "Update Human Review Status",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2160,
+        304
+      ]
+    }
+  ],
+  "connections": {
+    "New CV Uploaded": {
+      "main": [
+        [
+          {
+            "node": "Download CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract CV Text": {
+      "main": [
+        [
+          {
+            "node": "AI CV Assessor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI CV Assessor": {
+      "main": [
+        [
+          {
+            "node": "Store Assessment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI CV Assessor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grading Schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI CV Assessor",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Assessment": {
+      "main": [
+        [
+          {
+            "node": "Did Candidate Pass?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Did Candidate Pass?": {
+      "main": [
+        [
+          {
+            "node": "Send Approval Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Auto-Reject",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download CV": {
+      "main": [
+        [
+          {
+            "node": "Extract CV Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Approval Email": {
+      "main": [
+        [
+          {
+            "node": "Record Human Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Human Decision": {
+      "main": [
+        [
+          {
+            "node": "Update Human Review Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "pinData": {
+    "New CV Uploaded": [
+      {
+        "json": {
+          "parents": [
+            "1T4Pd2o3fwdTpzQfIr58zQ4tidQsGrNbT"
+          ],
+          "lastModifyingUser": {
+            "displayName": "Amos Augo",
+            "kind": "drive#user",
+            "me": true,
+            "permissionId": "01826917762084009724",
+            "emailAddress": "augoamos@gmail.com",
+            "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKcaYPkWKsVThPPIIPDZE-16aEsUl_SklRKeTGlBDN91x0H59w=s64"
+          },
+          "owners": [
+            {
+              "displayName": "Amos Augo",
+              "kind": "drive#user",
+              "me": true,
+              "permissionId": "01826917762084009724",
+              "emailAddress": "augoamos@gmail.com",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKcaYPkWKsVThPPIIPDZE-16aEsUl_SklRKeTGlBDN91x0H59w=s64"
+            }
+          ],
+          "permissions": [
+            {
+              "kind": "drive#permission",
+              "id": "01826917762084009724",
+              "type": "user",
+              "emailAddress": "augoamos@gmail.com",
+              "role": "owner",
+              "displayName": "Amos Augo",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKcaYPkWKsVThPPIIPDZE-16aEsUl_SklRKeTGlBDN91x0H59w=s64",
+              "deleted": false,
+              "pendingOwner": false
+            }
+          ],
+          "spaces": [
+            "drive"
+          ],
+          "capabilities": {
+            "canAcceptOwnership": false,
+            "canAddChildren": false,
+            "canAddMyDriveParent": false,
+            "canChangeCopyRequiresWriterPermission": true,
+            "canChangeItemDownloadRestriction": true,
+            "canChangeSecurityUpdateEnabled": false,
+            "canChangeViewersCanCopyContent": true,
+            "canComment": true,
+            "canCopy": true,
+            "canDelete": true,
+            "canDisableInheritedPermissions": false,
+            "canDownload": true,
+            "canEdit": true,
+            "canEnableInheritedPermissions": true,
+            "canListChildren": false,
+            "canModifyContent": true,
+            "canModifyContentRestriction": true,
+            "canModifyEditorContentRestriction": true,
+            "canModifyOwnerContentRestriction": true,
+            "canModifyLabels": false,
+            "canMoveChildrenWithinDrive": false,
+            "canMoveItemIntoTeamDrive": true,
+            "canMoveItemOutOfDrive": true,
+            "canMoveItemWithinDrive": true,
+            "canReadLabels": false,
+            "canReadRevisions": true,
+            "canRemoveChildren": false,
+            "canRemoveContentRestriction": false,
+            "canRemoveMyDriveParent": true,
+            "canRename": true,
+            "canShare": true,
+            "canTrash": true,
+            "canUntrash": true
+          },
+          "permissionIds": [
+            "01826917762084009724"
+          ],
+          "linkShareMetadata": {
+            "securityUpdateEligible": false,
+            "securityUpdateEnabled": true
+          },
+          "downloadRestrictions": {
+            "itemDownloadRestriction": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            },
+            "effectiveDownloadRestrictionWithContext": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            }
+          },
+          "kind": "drive#file",
+          "id": "1aGKYv9fdaMMSiXRaKN_lwJ7udR9STfnf",
+          "name": "AMOS_AUGO - GDEA.pdf",
+          "mimeType": "application/pdf",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "version": "5",
+          "webContentLink": "https://drive.google.com/uc?id=1aGKYv9fdaMMSiXRaKN_lwJ7udR9STfnf&export=download",
+          "webViewLink": "https://drive.google.com/file/d/1aGKYv9fdaMMSiXRaKN_lwJ7udR9STfnf/view?usp=drivesdk",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/pdf",
+          "hasThumbnail": true,
+          "thumbnailLink": "https://lh3.googleusercontent.com/drive-storage/AJQWtBMhpSUxpA19Lv-Ifn3cYlUjupEFYTS20Na9HO600z8G0MRAcwZICVGuw2oRLkI_I4nAGhv2z4g8Paqo5lKbxcKCnAko7qWhnb22lIZa3AGrLmTU=s220",
+          "thumbnailVersion": "1",
+          "viewedByMe": true,
+          "viewedByMeTime": "2026-04-27T12:40:37.504Z",
+          "createdTime": "2026-04-27T12:40:28.642Z",
+          "modifiedTime": "2026-04-23T14:34:43.000Z",
+          "modifiedByMeTime": "2026-04-23T14:34:43.000Z",
+          "modifiedByMe": true,
+          "shared": false,
+          "ownedByMe": true,
+          "viewersCanCopyContent": true,
+          "copyRequiresWriterPermission": false,
+          "writersCanShare": true,
+          "originalFilename": "AMOS_AUGO - GDEA.pdf",
+          "fullFileExtension": "pdf",
+          "fileExtension": "pdf",
+          "md5Checksum": "6e8b847b6616a7e96381c9c75600e175",
+          "sha1Checksum": "c63e548bab2f14d178ac59d87d5f2dacb5459ac4",
+          "sha256Checksum": "9c31d19a71500f77e774f5b529d499ca4f9c50d8ed09ba10182087fc000d0204",
+          "size": "522800",
+          "quotaBytesUsed": "522800",
+          "headRevisionId": "0B2HhU_rsbdbqWTBPWWpBMDNQcmtpR3ljRTRCM0Q4dlIycCtzPQ",
+          "isAppAuthorized": false,
+          "inheritedPermissionsDisabled": false
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
