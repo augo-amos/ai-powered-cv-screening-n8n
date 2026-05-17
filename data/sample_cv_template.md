@@ -1,5 +1,3 @@
-## data/sample_cv_template.md
-
 ```markdown
 # Sample CV Template for Testing
 
