@@ -6,7 +6,7 @@ An automated CV screening system built with n8n that uses GPT-4 to evaluate cand
 
 ## Workflow Preview
 
-![AI-Powered CV Screening Workflow](image/screenshot.png)
+![AI-Powered CV Screening Workflow](image.png)
 
 ---
 
