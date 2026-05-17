@@ -6,7 +6,8 @@ An automated CV screening system built with n8n that uses GPT-4 to evaluate cand
 
 ## Workflow Preview
 
-![AI-Powered CV Screening Workflow](./b5eb181f-e3a0-4744-ae0b-b53eb41974eb.png)
+![AI-Powered CV Screening Workflow](<img width="1858" height="826" alt="image" src="https://github.com/user-attachments/assets/cae3e07a-e307-41ec-b40b-8548e428cc15" />
+)
 
 ---
 
@@ -55,7 +56,7 @@ This workflow automatically monitors a Google Drive folder for new CV uploads, e
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/ai-cv-screening-n8n.git
+git clone https://github.com/augo-amos/ai-cv-screening-n8n.git
 cd ai-cv-screening-n8n
 ```
 
