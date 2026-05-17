@@ -1,6 +1,3 @@
-
----
-
 ## data/sample_cv_template.md
 
 ```markdown
